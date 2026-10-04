@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活动密钥领取倒计时</title>
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #2d3436;
+            --success-color: #00b894;
+            --warning-color: #fdcb6e;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* 顶部设置区域 */
+        .setup-panel {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        input[type="datetime-local"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        input[type="datetime-local"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        button#start-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        button#start-btn:hover {
+            background-color: #5649c0;
+            transform: translateY(-2px);
+        }
+
+        /* 密钥列表区域 */
+        #keys-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .key-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid #b2bec3; /* 默认灰色 */
+            transition: all 0.3s;
+        }
+
+        .key-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        .key-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #636e72;
+        }
+
+        .key-status {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+            color: var(--primary-color);
+        }
+
+        .unlock-time {
+            font-size: 12px;
+            color: #b2bec3;
+            margin-top: 5px;
+        }
+
+        /* 状态样式 */
+        .key-card.ready {
+            border-left-color: var(--success-color);
+            background-color: #e6fffa;
+        }
+        
+        .key-card.ready .countdown {
+            color: var(--success-color);
+            font-size: 20px;
+        }
+
+        .key-card.active {
+            border-left-color: var(--primary-color);
+        }
+
+        /* 提示动画 */
+        @keyframes flash {
+            0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 184, 148, 0); }
+            50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(0, 184, 148, 0.4); }
+            100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 184, 148, 0); }
+        }
+
+        .key-card.just-unlocked {
+            animation: flash 1s ease-in-out infinite;
+            border-left-color: var(--success-color);
+        }
+    </style>
+</head>
+<body>
+
+    <h1> 活动密钥领取助手</h1>
+
+    <div class="setup-panel">
+        <div class="input-group" style="justify-content: center; gap: 5px;">
+            <label for="start-date" style="font-weight: bold;">设定活动开始时间：</label>
+        </div>
+        <div class="input-group" style="flex-wrap: wrap; justify-content: center; gap: 8px;">
+            <input type="date" id="start-date" style="flex: 1; min-width: 130px; padding: 12px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 16px; outline: none;">
+            <input type="number" id="start-hour" min="0" max="23" value="0" style="flex: 0 0 60px; padding: 12px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 16px; outline: none; text-align: center;">
+            <input type="number" id="start-minute" min="0" max="59" value="0" style="flex: 0 0 60px; padding: 12px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 16px; outline: none; text-align: center;">
+            <input type="number" id="start-second" min="0" max="59" value="0" style="flex: 0 0 60px; padding: 12px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 16px; outline: none; text-align: center;">
+        </div>
+        <button id="start-btn">启动倒计时监控</button>
+    </div>
+
+    <div id="keys-container">
+        <!-- 密钥卡片将通过JS生成 -->
+    </div>
+
+    <script>
+        // 定义密钥解锁间隔（单位：分钟）
+        const intervals = [5, 15, 50, 35, 45, 35, 50, 60];
+        let keysData = [];
+        let timerInterval = null;
+
+        // 初始化页面，默认填入当前日期和时间（精确到秒）
+        window.onload = function() {
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+            document.getElementById('start-date').value = dateStr;
+            document.getElementById('start-hour').value = now.getHours();
+            document.getElementById('start-minute').value = now.getMinutes();
+            document.getElementById('start-second').value = now.getSeconds();
+        };
+
+        // 计算累计时间并生成数据
+        function generateKeysData(startTime) {
+            keysData = [];
+            let currentAccumulatedMinutes = 0;
+
+            intervals.forEach((interval, index) => {
+                currentAccumulatedMinutes += interval;
+                // 将分钟转换为毫秒并累加
+                const unlockTime = new Date(startTime.getTime() + currentAccumulatedMinutes * 60000);
+                
+                keysData.push({
+                    id: index + 1,
+                    accumulatedMinutes: currentAccumulatedMinutes,
+                    unlockTime: unlockTime,
+                    hasNotified: false
+                });
+            });
+        }
+
+        // 渲染卡片
+        function renderCards() {
+            const container = document.getElementById('keys-container');
+            container.innerHTML = '';
+
+            keysData.forEach(key => {
+                const card = document.createElement('div');
+                card.className = 'key-card';
+                card.id = `key-card-${key.id}`;
+                
+                // 格式化解锁时间，包含秒数
+                const timeStr = key.unlockTime.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                card.innerHTML = `
+                    <div class="key-info">
+                        <h3>第 ${key.id} 把密钥</h3>
+                        <p>间隔: +${intervals[key.id-1]}分钟</p>
+                    </div>
+                    <div class="key-status">
+                        <div class="countdown" id="countdown-${key.id}">--:--:--</div>
+                        <div class="unlock-time">解锁时间: ${timeStr}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 更新倒计时逻辑
+        function updateCountdowns() {
+            const now = new Date().getTime();
+
+            keysData.forEach(key => {
+                const card = document.getElementById(`key-card-${key.id}`);
+                const display = document.getElementById(`countdown-${key.id}`);
+                const distance = key.unlockTime.getTime() - now;
+
+                if (distance < 0) {
+                    // 时间已到
+                    if (!key.hasNotified) {
+                        // 1. 视觉闪烁提示
+                        card.classList.add('just-unlocked');
+                        
+                        // 2. 弹窗提醒（即使网页在后台也能看到）
+                        setTimeout(() => {
+                            alert(` 第 ${key.id} 把密钥已解锁！\n快去领取吧！`);
+                        }, 0);
+
+                        key.hasNotified = true;
+                        
+                        // 3. 系统通知（作为弹窗的补充）
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            new Notification(`第 ${key.id} 把密钥已解锁！`, { body: "快去领取吧！" });
+                        }
+                    }
+                    display.textContent = "可领取";
+                    card.classList.remove('active');
+                    card.classList.add('ready');
+                } else {
+                    // 时间未到，显示倒计时
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    display.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    card.classList.add('active');
+                }
+            });
+        }
+
+        // 启动按钮事件
+        document.getElementById('start-btn').addEventListener('click', () => {
+            const dateVal = document.getElementById('start-date').value;
+            const hourVal = parseInt(document.getElementById('start-hour').value) || 0;
+            const minuteVal = parseInt(document.getElementById('start-minute').value) || 0;
+            const secondVal = parseInt(document.getElementById('start-second').value) || 0;
+
+            if (!dateVal) return alert("请选择一个开始日期！");
+            if (hourVal < 0 || hourVal > 23) return alert("小时必须在 0-23 之间！");
+            if (minuteVal < 0 || minuteVal > 59) return alert("分钟必须在 0-59 之间！");
+            if (secondVal < 0 || secondVal > 59) return alert("秒必须在 0-59 之间！");
+
+            // 构建日期字符串并解析（使用本地时区）
+            const dateStr = dateVal + 'T' + hourVal.toString().padStart(2, '0') + ':' + minuteVal.toString().padStart(2, '0') + ':' + secondVal.toString().padStart(2, '0');
+            const startTime = new Date(dateStr);
+            
+            // 请求通知权限
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+
+            generateKeysData(startTime);
+            renderCards();
+            
+            // 清除旧的定时器
+            if (timerInterval) clearInterval(timerInterval);
+            
+            // 立即执行一次并启动定时器
+            updateCountdowns();
+            timerInterval = setInterval(updateCountdowns, 1000);
+            
+            // 滚动到列表位置
+            document.getElementById('keys-container').scrollIntoView({ behavior: 'smooth' });
+        });
+
+    </script>
+</body>
+</html>
+
+
